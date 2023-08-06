@@ -1,0 +1,461 @@
+source("scripts/00-setup.R")
+
+library(phyloseq)
+
+ps <- readRDS("./processed/ps_pruned_rared10k.rds")
+ps_all <- readRDS("./processed/ps_pruned_rared10k_100tables.rds")
+
+# which phyla are present and most dominant?
+all(sapply(ps_all, function(psx) {
+    sort(unique(tax_table(psx)[, "Phylum"]))
+}) == c("Actinobacteriota", "Cyanobacteria", "Firmicutes", "Proteobacteria"))
+# in this filtered set, we detect only 4 phyla, present in all rarefied tables
+
+ps_df <- reshape::melt(otu_table(ps)) %>%
+    set_names(c("sampleID", "ASV", "count")) %>%
+    left_join(sample_data(ps)) %>%
+    left_join(mutate(data.frame(tax_table(ps)), ASV = taxa_names(ps)))
+
+numtaxa <- ps_df %>%
+    filter(count > 0) %>%
+    group_by(sampleID, age) %>%
+    summarise(
+        Kingdom = length(unique(setdiff(Kingdom, NA))),
+        Phylum = length(unique(setdiff(Phylum, NA))),
+        Class = length(unique(setdiff(Class, NA))),
+        Order = length(unique(setdiff(Order, NA))),
+        Family = length(unique(setdiff(Family, NA))),
+        Genus = length(unique(setdiff(Genus, NA))),
+        `Missing Sp` = sum(is.na(Species)),
+        Species = length(unique(setdiff(Species, NA))),
+        ASV = length(unique(setdiff(ASV, NA)))
+    ) %>%
+    select(-Kingdom, -Class, -Order, -Family) %>%
+    gather(key = "taxon", value = "count", -sampleID, -age) %>%
+    mutate(taxon = factor(taxon, levels = c(
+        "Phylum", "Class", "Order", "Family", "Genus", "Species", "ASV",
+        "Missing Sp"
+    )))
+
+numtaxa %>%
+    group_by(taxon) %>%
+    summarise(
+        min = min(count), max = max(count), mean = mean(count),
+        median = median(count)
+    )
+
+numtaxa %>%
+    group_by(taxon, age) %>%
+    summarise(
+        min = min(count), max = max(count), mean = mean(count),
+        median = median(count)
+    )
+
+numtaxa_p <- numtaxa %>%
+    ggplot(aes(x = count, fill = age)) +
+    scale_fill_manual(values = agecol) +
+    geom_density(alpha = 0.5, linewidth = 0.1) +
+    facet_wrap(age ~ taxon, scales = "free", ncol = 5, nrow = 2) +
+    theme_pubr(base_size = 5) +
+    theme(
+        legend.key.size = unit(0.1, "cm"),
+        axis.line = element_line(linewidth = 0.1),
+        strip.background = element_rect(linewidth = 0.1)
+    ) +
+    scale_x_continuous(n.breaks = 4) +
+    xlab("Number of taxa")
+
+plotsave(numtaxa_p, "./results/16S/EDA/numtaxa", width = 8, height = 5)
+
+isoline_numtaxa_summary <- ps_df %>%
+    filter(count > 0) %>%
+    group_by(sampleID, Isoline) %>%
+    summarise(
+        Kingdom = length(unique(setdiff(Kingdom, NA))),
+        Phylum = length(unique(setdiff(Phylum, NA))),
+        Class = length(unique(setdiff(Class, NA))),
+        Order = length(unique(setdiff(Order, NA))),
+        Family = length(unique(setdiff(Family, NA))),
+        Genus = length(unique(setdiff(Genus, NA))),
+        `Missing Sp` = sum(is.na(Species)),
+        Species = length(unique(setdiff(Species, NA))),
+        ASV = length(unique(setdiff(ASV, NA)))
+    ) %>%
+    select(-Kingdom, -Class, -Order, -Family) %>%
+    gather(key = "taxon", value = "count", -sampleID, -Isoline) %>%
+    mutate(taxon = factor(taxon, levels = c(
+        "Phylum", "Class", "Order", "Family", "Genus", "Species", "ASV",
+        "Missing Sp"
+    ))) %>%
+    group_by(taxon, Isoline) %>%
+    summarise(
+        min = min(count), max = max(count), mean = mean(count),
+        median = median(count)
+    ) %>%
+    select(-min, -max, -median) %>%
+    group_by(taxon) %>%
+    summarise(
+        minx = min(mean),
+        maxx = max(mean),
+        meanx = mean(mean),
+        medianx = median(mean),
+        sdx = sd(mean)
+    ) %>%
+    mutate(`max/min` = maxx / minx) %>%
+    set_names(c("Taxa Level", "Minimum", "Maximum", "Mean", "Median", "SD", "Max/Min"))
+
+tablesave(isoline_numtaxa_summary, "./results/16S/EDA/isoline_numtaxa_summary")
+
+#   taxon        minx   maxx  meanx medianx    sdx `max/min`
+#   <fct>       <dbl>  <dbl>  <dbl>   <dbl>  <dbl>     <dbl>
+# 1 Phylum       1.12   2.5    1.81    1.75  0.342      2.22
+# 2 Genus        2.88   7.33   4.39    4.14  1.21       2.55
+# 3 Species      5.14   9.5    7.12    7.14  1.22       1.85
+# 4 ASV        139.   246.   179.    183    25.7        1.76
+# 5 Missing Sp  10.6   52.5   24.9    25     9.06       4.97
+
+
+taxaprev <- ps_df %>%
+    filter(count > 0) %>%
+    select(-Kingdom, -Class, -Order, -Family) %>%
+    gather(key = "taxon", value = "value", Species, Genus, Phylum, ASV) %>%
+    group_by(taxon, age, value) %>%
+    summarise(n = length(unique(sampleID))) %>%
+    mutate(taxon = factor(taxon, levels = c(
+        "Phylum", "Genus", "Species", "ASV"
+    ))) %>%
+    ggplot(aes(x = n, fill = age)) +
+    scale_fill_manual(values = agecol) +
+    geom_density(alpha = 0.5, linewidth = 0.1) +
+    facet_wrap(age ~ taxon, scales = "free_y", ncol = 4, nrow = 2) +
+    theme_pubr(base_size = 5) +
+    theme(
+        legend.key.size = unit(0.1, "cm"),
+        axis.line = element_line(linewidth = 0.1),
+        strip.background = element_rect(linewidth = 0.1)
+    ) +
+    xlab("Number of samples")
+
+plotsave(taxaprev, "./results/16S/EDA/taxaprev", width = 8, height = 5)
+
+ps_df %>%
+    filter(count > 0) %>%
+    select(-Kingdom, -Class, -Order, -Family) %>%
+    gather(key = "taxon", value = "value", Species, Genus, Phylum, ASV) %>%
+    group_by(taxon, value) %>%
+    summarise(n = length(unique(sampleID))) %>%
+    mutate(taxon = factor(taxon, levels = c(
+        "Phylum", "Genus", "Species", "ASV"
+    ))) %>%
+    group_by(taxon) %>%
+    summarise(
+        min = min(n), max = max(n), mean = mean(n), median = median(n)
+    )
+
+numtaxa_prev <- ggarrange(numtaxa_p, taxaprev,
+    common.legend = TRUE, legend = "top",
+    labels = "auto", font.label = list(size = 8)
+)
+
+plotsave(numtaxa_prev, "./results/16S/EDA/numtaxa_and_prev", width = 16, height = 5)
+
+taxaprev_isolines <- ps_df %>%
+    group_by(Isoline, ASV, Species, Genus, Phylum) %>%
+    summarise(count = sum(count)) %>%
+    filter(count > 0) %>%
+    gather(key = "taxon", value = "value", Species, Genus, Phylum, ASV) %>%
+    group_by(taxon, value) %>%
+    summarise(n = length(unique(Isoline))) %>%
+    mutate(taxon = factor(taxon, levels = c(
+        "Phylum", "Genus", "Species", "ASV"
+    ))) %>%
+    ggplot(aes(x = n)) +
+    geom_histogram(binwidth = 2) +
+    facet_wrap(~taxon, scales = "free_y", ncol = 4, nrow = 2) +
+    theme_pubr(base_size = 5) +
+    theme(
+        axis.line = element_line(linewidth = 0.1),
+        strip.background = element_rect(linewidth = 0.1)
+    ) +
+    xlab("Number of isolines") +
+    ylab("Number of taxa")
+
+plotsave(taxaprev_isolines, "./results/16S/EDA/taxaprev_isolines", width = 8, height = 3)
+
+ps_genus <- tax_glom(ps, taxrank = "Genus")
+genusmat <- otu_table(ps_genus)
+genus_taxatable <- mutate(data.frame(tax_table(ps_genus)),
+    ASV = colnames(genusmat)
+)
+
+data.frame(t(genusmat), ASV = colnames(genusmat)) %>%
+    gather(key = "sampleID", value = "count", -ASV) %>%
+    left_join(genus_taxatable) %>%
+    left_join(sample_data(ps_genus)) %>%
+    group_by(age, Isoline, Genus) %>%
+    summarise(abd = mean(count)) %>%
+    ungroup() %>%
+    mutate(Genus = fct_lump_n(
+        f = Genus, n = 7, w = abd,
+        other_level = "Other"
+    )) %>%
+    mutate(Isoline = factor(Isoline, levels = intersect(1:100, Isoline))) %>%
+    filter(age == "early") %>%
+    head()
+
+genus_bar <- data.frame(t(genusmat), ASV = colnames(genusmat)) %>%
+    gather(key = "sampleID", value = "count", -ASV) %>%
+    left_join(genus_taxatable) %>%
+    left_join(sample_data(ps_genus)) %>%
+    group_by(age, Isoline, Genus) %>%
+    summarise(abd = mean(count)) %>%
+    ungroup() %>%
+    mutate(Genus = fct_lump_n(
+        f = Genus, n = 7, w = abd,
+        other_level = "Other"
+    )) %>%
+    mutate(Isoline = factor(Isoline, levels = intersect(1:100, Isoline))) %>%
+    ggplot(aes(x = Isoline, y = abd, fill = Genus)) +
+    geom_bar(
+        stat = "identity", width = 1, color = "gray25",
+        position = "fill", linewidth = 0.1,
+    ) +
+    scale_fill_brewer(type = "qual", palette = 1) +
+    facet_wrap(~age) +
+    ylab("Mean Relative Abundance") +
+    theme_minimal(base_size = 5) +
+    theme(
+        legend.position = "top",
+        legend.key.size = unit(0.1, "cm"),
+        panel.grid.major = element_blank(),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
+    )
+
+plotsave(genus_bar, "./results/16S/EDA/genus_bar", width = 16, height = 6)
+
+ps_clr <- microbiome::transform(ps, transform = "clr")
+asvmat <- otu_table(ps_clr)
+pcax <- prcomp(asvmat)
+pcx <- data.frame(pcax$x, sampleID = rownames(pcax$x)) %>%
+    left_join(sample_data(ps_clr))
+
+sig_pcs <- which(summary(pcax)$imp[2, ] * 100 >= 5)
+sigvals <- paste("PC", seq_len(ncol(pcax$x)), " (",
+    round(summary(pcax)$imp[2, ] * 100, 2), "%)",
+    sep = ""
+)
+
+pc12_mean <- select(pcx, age, PC1, PC2) %>%
+    group_by(age) %>%
+    summarise(PC1mean = mean(PC1), PC2mean = mean(PC2))
+
+pcaplot <- full_join(pcx, pc12_mean) %>%
+    ggplot(aes(x = PC1, y = PC2, color = age)) +
+    geom_point(size = 0.5) +
+    geom_point(aes(x = PC1mean, y = PC2mean), size = 2, shape = 18) +
+    geom_segment(aes(x = PC1mean, y = PC2mean, xend = PC1, yend = PC2),
+        alpha = 0.5, arrow = arrow(length = unit(0.05, "cm")), linewidth = 0.1
+    ) +
+    scale_color_manual(values = agecol) +
+    theme_bw(base_size = 5) +
+    theme(
+        legend.position = "top",
+        legend.key.size = unit(0.3, "cm"),
+        panel.grid.major = element_blank(),
+        axis.line = element_line(linewidth = 0.1),
+        strip.background = element_rect(linewidth = 0.1)
+    ) +
+    xlab(sigvals[1]) +
+    ylab(sigvals[2])
+
+plotsave(pcaplot, "./results/16S/EDA/pcaplot", width = 8, height = 8)
+
+pslog <- microbiome::transform(ps, transform = "log10p")
+
+ordx <- ordinate(pslog, "PCoA", "bray")
+p1 <- plot_ordination(pslog, ordx, type = "taxa", color = "Phylum") +
+    theme_bw(base_size = 6) +
+    theme(
+        legend.position = "top",
+        legend.key.size = unit(0.3, "cm")
+    ) + guides(color = guide_legend(nrow = 2))
+p2 <- plot_ordination(pslog, ordx, type = "samples", color = "age") +
+    scale_color_manual(values = agecol) +
+    theme_bw(base_size = 6) +
+    theme(
+        legend.position = "top",
+        legend.key.size = unit(0.3, "cm")
+    )
+p3 <- plot_ordination(pslog, ordx, type = "samples", color = "run") +
+    theme_bw(base_size = 6) +
+    theme(
+        legend.position = "top",
+        legend.key.size = unit(0.3, "cm"),
+    )
+pcoa <- ggarrange(p1, p2, p3,
+    ncol = 3, nrow = 1, align = "hv", labels = "auto",
+    font.label = list(size = 8)
+)
+
+plotsave(pcoa, "./results/16S/EDA/pcoa", width = 16, height = 8)
+
+alphadiv <- estimate_richness(ps) %>%
+    mutate(sampleID = sample_names(ps)) %>%
+    select(sampleID, Observed, Shannon, Simpson, Chao1, InvSimpson) %>%
+    gather(key = "metric", value = "diversity", -sampleID) %>%
+    left_join(sample_data(ps))
+
+alphadiv_plot <- alphadiv %>%
+    ggplot(aes(x = age, y = diversity, fill = age)) +
+    geom_violin(scale = "width", linewidth = 0.1) +
+    geom_boxplot(
+        width = 0.1, fill = "white", outlier.size = 0.05,
+        linewidth = 0.25
+    ) +
+    scale_fill_manual(values = agecol) +
+    facet_wrap(~metric, scales = "free_y", ncol = 5, nrow = 1) +
+    stat_compare_means(
+        aes(label = paste0("p = ", after_stat(p.format))),
+        method = "wilcox", paired = FALSE, size = 5 / pntnorm,
+        label.y.npc = 0.95
+    ) +
+    theme_pubr(base_size = 5) +
+    theme(
+        legend.position = "top",
+        legend.key.size = unit(0.1, "cm"),
+        axis.line = element_line(linewidth = 0.1),
+        strip.background = element_rect(linewidth = 0.1)
+    ) +
+    ylab("Alpha diversity") +
+    xlab("Age group")
+
+plotsave(alphadiv_plot, "./results/16S/EDA/alphadiv_plot", width = 16, height = 4)
+
+alphadiv_genus <- estimate_richness(tax_glom(ps, "Genus"),
+    measures = c("Observed", "Shannon", "Simpson", "Chao1", "InvSimpson")
+) %>%
+    select(-se.chao1) %>%
+    mutate(sampleID = sample_names(ps)) %>%
+    gather(key = "metric", value = "diversity", -sampleID) %>%
+    left_join(sample_data(ps))
+
+alphadiv_genus_plot <- alphadiv_genus %>%
+    ggplot(aes(x = age, y = diversity, fill = age)) +
+    geom_violin(scale = "width", linewidth = 0.1) +
+    geom_boxplot(
+        width = 0.1, fill = "white", outlier.size = 0.05,
+        linewidth = 0.25
+    ) +
+    scale_fill_manual(values = agecol) +
+    facet_wrap(~metric, scales = "free_y", ncol = 5, nrow = 1) +
+    stat_compare_means(
+        aes(label = paste0("p = ", after_stat(p.format))),
+        method = "wilcox", paired = FALSE, size = 5 / pntnorm,
+        label.y.npc = 0.95
+    ) +
+    theme_pubr(base_size = 5) +
+    theme(
+        legend.position = "top",
+        legend.key.size = unit(0.1, "cm"),
+        axis.line = element_line(linewidth = 0.1),
+        strip.background = element_rect(linewidth = 0.1)
+    ) +
+    ylab("Alpha diversity") +
+    xlab("Age group")
+
+plotsave(alphadiv_genus_plot, "./results/16S/EDA/alphadiv_genus_plot",
+    width = 16, height = 4
+)
+
+alphadivplots <- ggarrange(alphadiv_plot + ggtitle("ASV level"),
+    alphadiv_genus_plot + ggtitle("Genus level"),
+    ncol = 1, nrow = 2, align = "hv",
+    labels = "auto", font.label = list(size = 8), common.legend = TRUE,
+    legend = "right"
+)
+
+plotsave(alphadivplots, "./results/16S/EDA/alphadiv_plots",
+    width = 16, height = 8
+)
+
+# beta diversity
+betadiv <- distance(ps, method = "bray")
+
+betadiv_df <- reshape2::melt(as.matrix(betadiv)) %>%
+    set_names(c("sample1", "sample2", "beta")) %>%
+    mutate(sampleID = sample1) %>%
+    left_join(select(data.frame(sample_data(ps)), sampleID, age)) %>%
+    rename(age1 = age) %>%
+    mutate(sampleID = sample2) %>%
+    left_join(select(data.frame(sample_data(ps)), sampleID, age)) %>%
+    rename(age2 = age) %>%
+    mutate(
+        sameage = age1 == age2,
+        agecomp = paste(age1, age2, sep = "-")
+    ) %>%
+    filter(sample1 != sample2) %>%
+    rowwise() %>%
+    mutate(comppair = paste(sort(c(sample1, sample2)), collapse = "-")) %>%
+    select(-sample1, -sample2, -sampleID) %>%
+    unique() %>%
+    mutate(agecomp = ifelse(agecomp == "late-early", "early-late", agecomp))
+
+betadiv_plot <- betadiv_df %>%
+    ggplot(aes(x = agecomp, y = beta, fill = agecomp)) +
+    geom_violin(scale = "width", linewidth = 0.1) +
+    geom_boxplot(
+        width = 0.1, fill = "white", outlier.size = 0.05,
+        linewidth = 0.25
+    ) +
+    scale_fill_manual(values = setNames(
+        c(agecol[1], "#56316d", agecol[2]),
+        c("early-early", "early-late", "late-late")
+    )) +
+    xlab("Age comparison") +
+    ylab("Bray-Curtis dissimilarity") +
+    stat_compare_means(
+        comparisons = list(
+            c("early-early", "early-late"),
+            c("early-early", "late-late"),
+            c("early-late", "late-late")
+        ),
+        size = 5 / pntnorm,
+        label.y.npc = 0.95, method = "wilcox"
+    ) +
+    theme_pubr(base_size = 5) +
+    theme(
+        legend.position = "top",
+        legend.key.size = unit(0.1, "cm"),
+        axis.line = element_line(linewidth = 0.1),
+        strip.background = element_rect(linewidth = 0.1)
+    ) +
+    guides(fill = guide_legend(title = NULL))
+
+plotsave(betadiv_plot, "./results/16S/EDA/betadiv_plot",
+    width = 4, height = 4
+)
+
+
+ubiomedivplot <- ggarrange(
+    ggarrange(numtaxa_p, taxaprev,
+        common.legend = TRUE, legend = "top",
+        labels = "auto", font.label = list(size = 8)
+    ), ggarrange(
+        genus_bar, pcaplot, betadiv_plot,
+        ncol = 3, nrow = 1, widths = c(1.8, 1.2, 0.9),
+        labels = c("c.", "d.", "e."), font.label = list(size = 8)
+    ), ggarrange(alphadiv_plot + ggtitle("ASV level"),
+        alphadiv_genus_plot + ggtitle("Genus level"),
+        ncol = 2, nrow = 1, align = "hv",
+        labels = c("f.", "g."), font.label = list(size = 8),
+        common.legend = TRUE,
+        legend = "none"
+    ),
+    ncol = 1, nrow = 3,
+    heights = c(1.2, 1.5, 0.8)
+)
+
+plotsave(ubiomedivplot, "./results/16S/EDA/ubiomedivplot",
+    width = 16,
+    height = 12
+)
