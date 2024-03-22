@@ -131,45 +131,38 @@ run1_out <- filterAndTrim(run1_fn_fs, run1_filt_fs, run1_fn_rs, run1_filt_rs,
 head(run1_out)
 
 summary(run1_out[, 2] / run1_out[, 1])
-#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-#  0.9401  0.9942  0.9983  0.9936  0.9987  0.9990
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+# 0.9401  0.9942  0.9983  0.9936  0.9987  0.9990
 
-# run2_out <- filterAndTrim(run2_fn_fs, run2_filt_fs, run2_fn_rs, run2_filt_rs,
-#     truncLen = c(280, 250),
-#     maxN = 0, rm.phix = TRUE,
-#     compress = TRUE, multithread = TRUE
-# )
-# head(run2_out)
-# # values with truncLen = c(280, 250)
-# summary(run2_out[, 2] / run2_out[, 1])
-# #    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-# #  0.4524  0.4772  0.4917  0.4929  0.4995  0.7971
-# # overall too small, I'll instead try 250, 230 to see if higher truncation
-# # gives better results
-
-# run2_out <- filterAndTrim(run2_fn_fs, run2_filt_fs, run2_fn_rs, run2_filt_rs,
-#     truncLen = c(250, 230),
-#     maxN = 0, rm.phix = TRUE,
-#     compress = TRUE, multithread = TRUE
-# )
-# head(run2_out)
-
-# summary(run2_out[, 2] / run2_out[, 1])
-# #    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-# #  0.4537  0.4773  0.4917  0.4931  0.4996  0.7971
-# # results do not change with larger truncation, suggesting better quality in
-# # first round. to be consistent I will use the original values of 280 and 250.
+# there are 3base long N in the beginning of the reads in run 2, reverse reads,
+# so we trim 3 bases from left (without trimming, dada2 doesn't like Ns and
+# filters out almost half of the reads)
 
 run2_out <- filterAndTrim(run2_fn_fs, run2_filt_fs, run2_fn_rs, run2_filt_rs,
-    truncLen = c(280, 250),
+    truncLen = c(280, 250), trimLeft = c(0, 3),
     maxN = 0, rm.phix = TRUE,
     compress = TRUE, multithread = TRUE
 )
 head(run2_out)
 
 summary(run2_out[, 2] / run2_out[, 1])
-#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-#  0.4524  0.4772  0.4917  0.4929  0.4995  0.7971
+#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+# 0.9413  0.9979  0.9989  0.9958  0.9993  1.0000
+
+
+# to have comparable ASVs and make merging easier we apply the same trimming to
+# run 1
+run1_out <- filterAndTrim(run1_fn_fs, run1_filt_fs, run1_fn_rs, run1_filt_rs,
+    truncLen = c(280, 250), trimLeft = c(0, 3),
+    maxN = 0, rm.phix = TRUE,
+    compress = TRUE, multithread = TRUE
+)
+head(run1_out)
+
+summary(run1_out[, 2] / run1_out[, 1])
+
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+# 0.9401  0.9942  0.9983  0.9936  0.9987  0.9990
 
 run1_err_f <- learnErrors(run1_filt_fs, multithread = TRUE)
 run1_err_r <- learnErrors(run1_filt_rs, multithread = TRUE)
@@ -220,7 +213,7 @@ run2_asv_len_p <- data.frame(asv_length = nchar(getSequences(run2_seqtab))) %>%
 
 plotsave(run2_asv_len_p, "./results/dada2/merged_seq/asv_len_run2")
 
-# both runs have 2 peaks at length 440 and 465
+# both runs have 2 peaks at length 432 and 462
 
 seqtab <- mergeSequenceTables(run1_seqtab, run2_seqtab)
 table(nchar(getSequences(seqtab)))
@@ -236,12 +229,13 @@ seqtab_nochim <- removeBimeraDenovo(seqtab,
     multithread = TRUE, verbose = TRUE
 )
 dim(seqtab_nochim)
+# 177 2020
 
 ncol(seqtab_nochim) / ncol(seqtab)
-# [1] 0.3329799 # only 33% of the ASV sequences are maintained after chimera rem
+# [1] 0.2956674 # only 30% of the ASV sequences are maintained after chimera rem
 
 sum(seqtab_nochim) / sum(seqtab)
-# [1] 0.8121372 # 82% of reads are not chimeric.
+# [1] 0.7931039 # 79.3% of reads are not chimeric.
 
 get_n <- function(x) sum(getUniques(x))
 track_run1 <- cbind(
@@ -277,21 +271,21 @@ data.frame(track_run1) %>%
     ) %>%
     summary()
 
-#      input           filtered        denoisedF        denoisedR
-#  Min.   : 19038   Min.   : 18753   Min.   : 17679   Min.   : 18114
-#  1st Qu.: 87368   1st Qu.: 87238   1st Qu.: 85582   1st Qu.: 85909
-#  Median : 97950   Median : 96073   Median : 93746   Median : 94116
-#  Mean   :100294   Mean   : 99750   Mean   : 97508   Mean   : 97920
-#  3rd Qu.:119032   3rd Qu.:118909   3rd Qu.:116451   3rd Qu.:117468
-#  Max.   :157279   Max.   :156903   Max.   :154221   Max.   :154507
+#     input           filtered        denoisedF        denoisedR
+# Min.   : 19038   Min.   : 18753   Min.   : 17679   Min.   : 18124
+# 1st Qu.: 87368   1st Qu.: 87238   1st Qu.: 85582   1st Qu.: 85922
+# Median : 97950   Median : 96073   Median : 93746   Median : 94124
+# Mean   :100294   Mean   : 99750   Mean   : 97508   Mean   : 97920
+# 3rd Qu.:119032   3rd Qu.:118909   3rd Qu.:116451   3rd Qu.:117460
+# Max.   :157279   Max.   :156903   Max.   :154221   Max.   :154512
 
 #     merged          filtperc        mergeperc
-# Min.   : 17174   Min.   :0.9401   Min.   :0.8728
-# 1st Qu.: 83228   1st Qu.:0.9942   1st Qu.:0.9443
-# Median : 91714   Median :0.9983   Median :0.9527
+# Min.   : 17183   Min.   :0.9401   Min.   :0.8728
+# 1st Qu.: 83224   1st Qu.:0.9942   1st Qu.:0.9442
+# Median : 91716   Median :0.9983   Median :0.9527
 # Mean   : 94805   Mean   :0.9936   Mean   :0.9481
-# 3rd Qu.:113243   3rd Qu.:0.9987   3rd Qu.:0.9598
-# Max.   :150853   Max.   :0.9990   Max.   :0.9687
+# 3rd Qu.:113233   3rd Qu.:0.9987   3rd Qu.:0.9598
+# Max.   :150855   Max.   :0.9990   Max.   :0.9687
 
 # run1 stats are pretty good.
 
@@ -302,24 +296,24 @@ data.frame(track_run2) %>%
     ) %>%
     summary()
 
-#      input            filtered        denoisedF        denoisedR
-#  Min.   :    131   Min.   :    81   Min.   :    63   Min.   :    61
-#  1st Qu.:  49836   1st Qu.: 23956   1st Qu.: 23541   1st Qu.: 23296
-#  Median :  63823   Median : 31245   Median : 30564   Median : 30392
-#  Mean   :  91555   Mean   : 44786   Mean   : 43963   Mean   : 43772
-#  3rd Qu.: 100391   3rd Qu.: 49235   3rd Qu.: 48170   3rd Qu.: 48206
-#  Max.   :1048436   Max.   :508150   Max.   :502982   Max.   :499424
+#     input            filtered         denoisedF         denoisedR
+# Min.   :    131   Min.   :    130   Min.   :    104   Min.   :     96
+# 1st Qu.:  49836   1st Qu.:  49792   1st Qu.:  49145   1st Qu.:  48730
+# Median :  63823   Median :  63756   Median :  62783   Median :  62295
+# Mean   :  91555   Mean   :  91359   Mean   :  89998   Mean   :  89453
+# 3rd Qu.: 100391   3rd Qu.: 100308   3rd Qu.:  99248   3rd Qu.:  98618
+# Max.   :1048436   Max.   :1047510   Max.   :1038435   Max.   :1028840
 
-#     merged          filtperc        mergeperc
-# Min.   :    54   Min.   :0.4524   Min.   :0.6667
-# 1st Qu.: 22639   1st Qu.:0.4772   1st Qu.:0.9053
-# Median : 29095   Median :0.4917   Median :0.9298
-# Mean   : 41637   Mean   :0.4929   Mean   :0.9123
-# 3rd Qu.: 45708   3rd Qu.:0.4995   3rd Qu.:0.9461
-# Max.   :483781   Max.   :0.7971   Max.   :0.9667
+#       merged          filtperc        mergeperc
+#   Min.   :    88   Min.   :0.9413   Min.   :0.6769
+#   1st Qu.: 47121   1st Qu.:0.9979   1st Qu.:0.9170
+#   Median : 60261   Median :0.9989   Median :0.9398
+#   Mean   : 85598   Mean   :0.9958   Mean   :0.9219
+#   3rd Qu.: 92530   3rd Qu.:0.9993   3rd Qu.:0.9539
+#   Max.   :999271   Max.   :1.0000   Max.   :0.9696
 
-# in run 2 we lose most of the reads during filterin but merge percentage
-# is not bad
+# in run 2 we lose some of the reads for some samples during merging but on
+# average it is not bad
 
 taxa <- assignTaxonomy(seqtab_nochim,
     "./raw/SILVA/silva_nr99_v138.1_wSpecies_train_set.fa.gz",
@@ -330,11 +324,12 @@ taxa_print <- taxa # Removing sequence rownames for display only
 rownames(taxa_print) <- NULL
 
 colMeans(!is.na(taxa_print))
-#   Kingdom    Phylum     Class     Order    Family     Genus   Species
-# 0.9782378 0.8540340 0.8290870 0.8274947 0.8099788 0.7478769 0.4930998
-# this is a pretty good result, suggesting 50% of our ASVs can be assigned to
+#  Kingdom    Phylum     Class     Order    Family     Genus   Species
+# 0.9757426 0.8544554 0.8247525 0.8242574 0.8059406 0.7396040 0.4935644
+
+# this is a pretty good result, suggesting 49.5% of our ASVs can be assigned to
 # species and 85% of all ASVs have phyla level annotation. We will probably
-# filter out the unassigned 15% at the phyla level after checking the tree.
+# filter out the unassigned 13% at the phyla level after checking the tree.
 
 library(DECIPHER)
 library(phangorn)

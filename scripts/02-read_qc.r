@@ -10,10 +10,7 @@ fastqc(fq.dir = run2_path, qc.dir = "./processed/fastqc/run2")
 
 # aggregate fastqc reports
 qc_run1 <- qc_aggregate("./processed/fastqc/run1", progressbar = FALSE)
-qc_run2 <- qc_aggregate("./processed/fastqc/run2",
-    progressbar = FALSE,
-    show_col_types = FALSE
-)
+qc_run2 <- qc_aggregate("./processed/fastqc/run2", progressbar = FALSE)
 
 # select only the samples in our study and save their QC report
 metadata <- readRDS("./processed/metadata.rds")
@@ -29,8 +26,8 @@ objsave(qc_run2, "./processed/fastqc/run2_summary")
 
 qc_run1 %>%
     filter(status == "FAIL") %>%
-    group_by(module, FR) %>%
-    summarise(n = length(unique(SampleID)))
+    group_by(module, status) %>%
+    summarise(n = length(unique(sample)))
 
 qc_run2 %>%
     filter(status == "FAIL") %>%

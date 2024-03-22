@@ -110,13 +110,13 @@ plotsave(tree_before_after, "./results/EDA/tree_before_and_after",
 
 # apply prevelance filtering - filter out all taxa that are not present in at
 # least 1% of samples
-ps_lp_phy_tp_prev <- prune_taxa(names(which(colSums(otu_table(
+ps_lp_phy_tp_prev <- prune_taxa(names(which(colMeans(otu_table(
     ps_lp_phy_tp
 ) > 0) >= 0.01)), ps_lp_phy_tp)
 
 summary(colMeans(otu_table(ps_lp_phy_tp_prev) > 0))
-#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-# 0.01130 0.02825 0.11299 0.27309 0.45904 0.98305
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+# 0.01130 0.02825 0.12429 0.27425 0.49718 0.98305
 
 # save the phyloseq object after prevalence filtering
 objsave(ps_lp_phy_tp_prev, "./processed/ps_length_phyla_treepruned_prev")
