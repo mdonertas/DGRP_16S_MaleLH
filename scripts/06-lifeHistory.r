@@ -4,6 +4,9 @@ metadata <- readRDS("./processed/metadata.rds")
 ps_norare <- readRDS("./processed/ps_pruned_samplefiltered.rds")
 ps <- readRDS("./processed/ps_pruned_rared10k.rds")
 
+length(unique(sample_data(ps)$Isoline))
+# 22
+
 library(GGally)
 
 # Function to plot lower panel of ggpairs with custom colors
@@ -51,21 +54,13 @@ data.frame(sample_data(ps)) %>%
     select(-Isoline) %>%
     summary()
 
-#       AvLF          EarlyRS          CSearly          CSSlope
-#  Min    :25.14   Min.   :0.1275   Min.   :0.2233   Min.   :-0.6467
-#  1st Qu.:32.20   1st Qu.:0.3971   1st Qu.:0.3667   1st Qu.:-0.5365
-#  Median :35.73   Median :0.5204   Median :0.5133   Median :-0.4427
-#  Mean   :37.52   Mean   :0.4965   Mean   :0.5332   Mean   :-0.4152
-#  3rd Qu.:39.69   3rd Qu.:0.6134   3rd Qu.:0.7100   3rd Qu.:-0.2877
-#  Max.   :58.61   Max.   :0.7852   Max.   :0.8167   Max.   :-0.1238
-
-#      Rsen
-# Min.   :-0.10001
-# 1st Qu.: 0.09556
-# Median : 0.19186
-# Mean   : 0.17105
-# 3rd Qu.: 0.24479
-# Max.   : 0.38166
+#      AvLF          EarlyRS          CSearly          CSSlope             Rsen
+# Min.   :25.14   Min.   :0.1275   Min.   :0.2233   Min.   :-0.6467   Min.   :-0.10001
+# 1st Qu.:32.41   1st Qu.:0.3971   1st Qu.:0.3444   1st Qu.:-0.5360   1st Qu.: 0.09491
+# Median :35.96   Median :0.4738   Median :0.5067   Median :-0.4286   Median : 0.19027
+# Mean   :37.77   Mean   :0.4932   Mean   :0.5243   Mean   :-0.4102   Mean   : 0.16416
+# 3rd Qu.:41.39   3rd Qu.:0.6120   3rd Qu.:0.7075   3rd Qu.:-0.2888   3rd Qu.: 0.24310
+# Max.   :58.61   Max.   :0.7852   Max.   :0.8167   Max.   :-0.1238   Max.   : 0.38166
 
 # Calculate the summary statistics for life history traits
 summary_stats <- data.frame(sample_data(ps)) %>%

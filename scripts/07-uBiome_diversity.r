@@ -44,12 +44,34 @@ numtaxa %>%
         median = median(count)
     )
 
+#  taxon        min   max   mean median
+#  <fct>      <int> <int>  <dbl>  <int>
+# 1 Phylum         1     3   1.88      2
+# 2 Genus          2    11   4.88      5
+# 3 Species        3    16   7.38      7
+# 4 ASV           53   300 187.      184
+# 5 Missing Sp     0    93  19.8      14
+
 numtaxa %>%
     group_by(taxon, age) %>%
     summarise(
         min = min(count), max = max(count), mean = mean(count),
         median = median(count)
     )
+
+#   taxon      age     min   max   mean median
+#   <fct>      <chr> <int> <int>  <dbl>  <dbl>
+# 1 Phylum     early     1     3   1.77      2
+# 2 Phylum     late      1     3   1.98      2
+# 3 Genus      early     2    11   5.34      6
+# 4 Genus      late      2     9   4.45      4
+# 5 Species    early     4    16   7.99      8
+# 6 Species    late      3    10   6.82      7
+# 7 ASV        early    53   300 181.      168
+# 8 ASV        late    115   296 193.      187
+# 9 Missing Sp early     0    93  15.7      13
+# 10 Missing Sp late      1    66  23.5      16
+
 
 numtaxa_p <- numtaxa %>%
     ggplot(aes(x = count, fill = age)) +
@@ -106,13 +128,13 @@ isoline_numtaxa_summary <- ps_df %>%
 
 tablesave(isoline_numtaxa_summary, "./results/16S/EDA/isoline_numtaxa_summary")
 
-#   taxon        minx   maxx  meanx medianx    sdx `max/min`
-#   <fct>       <dbl>  <dbl>  <dbl>   <dbl>  <dbl>     <dbl>
-# 1 Phylum       1.12   2.5    1.81    1.75  0.342      2.22
-# 2 Genus        2.88   7.33   4.39    4.14  1.21       2.55
-# 3 Species      5.14   9.5    7.12    7.14  1.22       1.85
-# 4 ASV        139.   246.   179.    183    25.7        1.76
-# 5 Missing Sp  10.6   52.5   24.9    25     9.06       4.97
+#   `Taxa Level` Minimum Maximum   Mean Median     SD `Max/Min`
+#   <fct>          <dbl>   <dbl>  <dbl>  <dbl>  <dbl>     <dbl>
+# 1 Phylum          1.25     2.5   1.88   1.88  0.306      2
+# 2 Genus           3.25     7.5   4.90   4.88  1.06       2.31
+# 3 Species         5.67     9.5   7.40   7.39  1.05       1.68
+# 4 ASV           139.     246.  187.   188.   25.0        1.78
+# 5 Missing Sp      8       50.3  20.1   16.9   9.81       6.29
 
 
 taxaprev <- ps_df %>%
@@ -151,6 +173,12 @@ ps_df %>%
     summarise(
         min = min(n), max = max(n), mean = mean(n), median = median(n)
     )
+#  taxon     min   max  mean median
+#  <fct>   <int> <int> <dbl>  <dbl>
+# 1 Phylum      5   161  75.5     68
+# 2 Genus       1   161  30.4      9
+# 3 Species     1   161  48       16
+# 4 ASV         1   160  44.5     21
 
 numtaxa_prev <- ggarrange(numtaxa_p, taxaprev,
     common.legend = TRUE, legend = "top",
