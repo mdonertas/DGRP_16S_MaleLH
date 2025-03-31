@@ -11,7 +11,7 @@ all(sapply(ps_all, function(psx) {
 }) == c("Actinobacteriota", "Cyanobacteria", "Firmicutes", "Proteobacteria"))
 # in this filtered set, we detect only 4 phyla, present in all rarefied tables
 
-ps_df <- reshape::melt(otu_table(ps)) %>%
+ps_df <- reshape2::melt(otu_table(ps)) %>%
     set_names(c("sampleID", "ASV", "count")) %>%
     left_join(sample_data(ps)) %>%
     left_join(mutate(data.frame(tax_table(ps)), ASV = taxa_names(ps)))
@@ -77,7 +77,7 @@ numtaxa_p <- numtaxa %>%
     ggplot(aes(x = count, fill = age)) +
     scale_fill_manual(values = agecol) +
     geom_density(alpha = 0.5, linewidth = 0.1) +
-    facet_wrap(age ~ taxon, scales = "free", ncol = 5, nrow = 2) +
+    facet_wrap(. ~ taxon, scales = "free", ncol = 5, nrow = 1) +
     theme_pubr(base_size = 5) +
     theme(
         legend.key.size = unit(0.1, "cm"),
@@ -87,7 +87,7 @@ numtaxa_p <- numtaxa %>%
     scale_x_continuous(n.breaks = 4) +
     xlab("Number of taxa")
 
-plotsave(numtaxa_p, "./results/16S/EDA/numtaxa", width = 8, height = 5)
+plotsave(numtaxa_p, "./results/16S/EDA/numtaxa", width = 8, height = 3)
 
 isoline_numtaxa_summary <- ps_df %>%
     filter(count > 0) %>%
@@ -149,7 +149,7 @@ taxaprev <- ps_df %>%
     ggplot(aes(x = n, fill = age)) +
     scale_fill_manual(values = agecol) +
     geom_density(alpha = 0.5, linewidth = 0.1) +
-    facet_wrap(age ~ taxon, scales = "free_y", ncol = 4, nrow = 2) +
+    facet_wrap(. ~ taxon, scales = "free_y", ncol = 4, nrow = 1) +
     theme_pubr(base_size = 5) +
     theme(
         legend.key.size = unit(0.1, "cm"),
@@ -158,7 +158,7 @@ taxaprev <- ps_df %>%
     ) +
     xlab("Number of samples")
 
-plotsave(taxaprev, "./results/16S/EDA/taxaprev", width = 8, height = 5)
+plotsave(taxaprev, "./results/16S/EDA/taxaprev", width = 8, height = 3)
 
 ps_df %>%
     filter(count > 0) %>%
@@ -185,7 +185,7 @@ numtaxa_prev <- ggarrange(numtaxa_p, taxaprev,
     labels = "auto", font.label = list(size = 8)
 )
 
-plotsave(numtaxa_prev, "./results/16S/EDA/numtaxa_and_prev", width = 16, height = 5)
+plotsave(numtaxa_prev, "./results/16S/EDA/numtaxa_and_prev", width = 16, height = 3)
 
 taxaprev_isolines <- ps_df %>%
     group_by(Isoline, ASV, Species, Genus, Phylum) %>%
@@ -231,6 +231,14 @@ data.frame(t(genusmat), ASV = colnames(genusmat)) %>%
     filter(age == "early") %>%
     head()
 
+isolinemap <- read_delim("./data/isoline_map.csv", delim = ";") %>%
+    set_names(c("IsolineID", "Isoline")) %>%
+    mutate(
+        Isoline = as.character(Isoline),
+        IsolineID = as.character(IsolineID)
+    )
+
+
 genus_bar <- data.frame(t(genusmat), ASV = colnames(genusmat)) %>%
     gather(key = "sampleID", value = "count", -ASV) %>%
     left_join(genus_taxatable) %>%
@@ -242,8 +250,9 @@ genus_bar <- data.frame(t(genusmat), ASV = colnames(genusmat)) %>%
         f = Genus, n = 7, w = abd,
         other_level = "Other"
     )) %>%
-    mutate(Isoline = factor(Isoline, levels = intersect(1:100, Isoline))) %>%
-    ggplot(aes(x = Isoline, y = abd, fill = Genus)) +
+    left_join(isolinemap) %>%
+    mutate(IsolineID = factor(IsolineID, levels = intersect(1:1000, IsolineID))) %>%
+    ggplot(aes(x = IsolineID, y = abd, fill = Genus)) +
     geom_bar(
         stat = "identity", width = 1, color = "gray25",
         position = "fill", linewidth = 0.1,
@@ -480,10 +489,74 @@ ubiomedivplot <- ggarrange(
         legend = "none"
     ),
     ncol = 1, nrow = 3,
-    heights = c(1.2, 1.5, 0.8)
+    heights = c(0.8, 1.5, 0.8)
 )
 
 plotsave(ubiomedivplot, "./results/16S/EDA/ubiomedivplot",
     width = 16,
-    height = 12
+    height = 10
 )
+
+
+
+x <- readRDS("processed/dada2_run2_trackreads.rds")
+x
+
+
+genus_bar$data %>%
+    filter(Genus == "Wolbachia") %>%
+    filter(abd != 0)
+
+
+
+#####
+
+# to test the statement "The observed increase in ASV diversity may result from
+# the dominance of certain species in the gut of older flies, accompanied by
+# greater variability among strains within these dominant species."
+
+
+source("scripts/00-setup.R")
+
+library(phyloseq)
+
+ps <- readRDS("./processed/ps_pruned_rared10k.rds")
+
+
+ps_sp <- tax_glom(ps, taxrank = "Species")
+
+
+spnames <- apply(tax_table(ps), 1, function(x) paste(x, collapse = ";"))
+spasvcnts <- sort(table(spnames), dec = T)
+
+datmat = as.matrix(otu_table(ps_sp))
+
+e_l_means <- t(apply(datmat, 2, function(x) {
+    tapply(x, as.factor(substr(rownames(datmat), 1, 1)), mean)
+}))
+
+rownames(e_l_means) <- unname(spnames[rownames(e_l_means)])
+
+
+data.frame(e_l_means) %>%
+    mutate(spname = rownames(.)) %>%
+    left_join(data.frame(spname = names(spasvcnts), counts = spasvcnts)) %>%
+    ggplot(aes(x = counts.Freq, y = log2(L + 1) - log2(E + 1))) +
+    geom_point()
+
+
+# check instead if the NA species are the reason
+
+naasvs <- is.na(tax_table(ps)[, "Species"])
+table(naasvs)
+
+datmat <- as.matrix(otu_table(ps))
+e_l_means <- t(apply(datmat, 2, function(x) {
+    tapply(x, as.factor(substr(rownames(datmat), 1, 1)), mean)
+}))
+
+data.frame(e_l_means) %>%
+    mutate(spname = rownames(.)) %>%
+    left_join(data.frame(isna = unname(naasvs[, 1]), spname = rownames(naasvs))) %>%
+    ggplot(aes(x = isna, y = log2(L + 1) - log2(E + 1))) +
+    geom_boxplot()

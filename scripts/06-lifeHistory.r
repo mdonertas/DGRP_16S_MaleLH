@@ -1,5 +1,5 @@
 source("scripts/00-setup.R")
-
+library(phyloseq)
 metadata <- readRDS("./processed/metadata.rds")
 ps_norare <- readRDS("./processed/ps_pruned_samplefiltered.rds")
 ps <- readRDS("./processed/ps_pruned_rared10k.rds")
@@ -7,7 +7,96 @@ ps <- readRDS("./processed/ps_pruned_rared10k.rds")
 length(unique(sample_data(ps)$Isoline))
 # 22
 
-library(GGally)
+cordata <- data.frame(sample_data(ps)) %>%
+    select(Isoline, AvLF, EarlyRS, CSearly, CSSlope, Rsen) %>%
+    na.omit() %>%
+    unique() %>%
+    select(-Isoline) %>%
+    rename(
+        `Average Lifespan` = AvLF,
+        `Early Reproductive Success` = EarlyRS,
+        `Early Climbing Speed` = CSearly,
+        `Functional Aging` = CSSlope,
+        `Reproductive Senescence` = Rsen
+    )
+
+p1 <- cordata %>%
+    ggplot(aes(y = `Average Lifespan`, x = `Early Reproductive Success`)) +
+    geom_point(size = 0.5) +
+    geom_smooth(method = "lm", color = "darkred", fill = "#aa6868") +
+    stat_cor(method = "spearman", size = 6 / pntnorm, cor.coef = "rho") +
+    theme_bw(base_size = 6)
+
+p2 <- cordata %>%
+    ggplot(aes(y = `Average Lifespan`, x = `Early Climbing Speed`)) +
+    geom_point(size = 0.5) +
+    geom_smooth(method = "lm", color = "darkred", fill = "#aa6868") +
+    stat_cor(method = "spearman", size = 6 / pntnorm, cor.coef = "rho") +
+    theme_bw(base_size = 6)
+
+p3 <- cordata %>%
+    ggplot(aes(y = `Average Lifespan`, x = `Functional Aging`)) +
+    geom_point(size = 0.5) +
+    geom_smooth(method = "lm", color = "darkred", fill = "#aa6868") +
+    stat_cor(method = "spearman", size = 6 / pntnorm, cor.coef = "rho") +
+    theme_bw(base_size = 6)
+
+p4 <- cordata %>%
+    ggplot(aes(y = `Average Lifespan`, x = `Reproductive Senescence`)) +
+    geom_point(size = 0.5) +
+    geom_smooth(method = "lm", color = "darkred", fill = "#aa6868") +
+    stat_cor(method = "spearman", size = 6 / pntnorm, cor.coef = "rho") +
+    theme_bw(base_size = 6)
+
+p5 <- cordata %>%
+    ggplot(aes(y = `Early Reproductive Success`, x = `Early Climbing Speed`)) +
+    geom_point(size = 0.5) +
+    geom_smooth(method = "lm", color = "darkred", fill = "#aa6868") +
+    stat_cor(method = "spearman", size = 6 / pntnorm, cor.coef = "rho") +
+    theme_bw(base_size = 6)
+
+p6 <- cordata %>%
+    ggplot(aes(y = `Early Reproductive Success`, x = `Functional Aging`)) +
+    geom_point(size = 0.5) +
+    geom_smooth(method = "lm", color = "darkred", fill = "#aa6868") +
+    stat_cor(method = "spearman", size = 6 / pntnorm, cor.coef = "rho") +
+    theme_bw(base_size = 6)
+
+p7 <- cordata %>%
+    ggplot(aes(y = `Early Reproductive Success`, x = `Reproductive Senescence`)) +
+    geom_point(size = 0.5) +
+    geom_smooth(method = "lm", color = "darkred", fill = "#aa6868") +
+    stat_cor(method = "spearman", size = 6 / pntnorm, cor.coef = "rho") +
+    theme_bw(base_size = 6)
+
+p8 <- cordata %>%
+    ggplot(aes(y = `Early Climbing Speed`, x = `Functional Aging`)) +
+    geom_point(size = 0.5) +
+    geom_smooth(method = "lm", color = "darkred", fill = "#aa6868") +
+    stat_cor(method = "spearman", size = 6 / pntnorm, cor.coef = "rho") +
+    theme_bw(base_size = 6)
+
+p9 <- cordata %>%
+    ggplot(aes(y = `Early Climbing Speed`, x = `Reproductive Senescence`)) +
+    geom_point(size = 0.5) +
+    geom_smooth(method = "lm", color = "darkred", fill = "#aa6868") +
+    stat_cor(method = "spearman", size = 6 / pntnorm, cor.coef = "rho") +
+    theme_bw(base_size = 6)
+
+p10 <- cordata %>%
+    ggplot(aes(y = `Functional Aging`, x = `Reproductive Senescence`)) +
+    geom_point(size = 0.5) +
+    geom_smooth(method = "lm", color = "darkred", fill = "#aa6868") +
+    stat_cor(method = "spearman", size = 6 / pntnorm, cor.coef = "rho") +
+    theme_bw(base_size = 6)
+
+p11 <- ggarrange(p1, p2, p3, p4, p5, ncol = 5, align = "hv", font.label = list(size = 8), labels = c("a.", "b.", "c.", "d.", "e."))
+
+p12 <- ggarrange(p6, p7, p8, p9, p10, ncol = 5, align = "hv", font.label = list(size = 8), labels = c("f.", "g.", "h.", "i.", "j."))
+
+p13 <- ggarrange(p11, p12, ncol = 1, nrow = 2, align = 'hv')
+
+plotsave(p13, './results/life_history/correlations2', width = 16, height = 8)
 
 # Function to plot lower panel of ggpairs with custom colors
 lower_panelfn <- function(data, mapping, method = "lm", ...) {
