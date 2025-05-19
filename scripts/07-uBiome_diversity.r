@@ -313,28 +313,28 @@ ordx <- ordinate(pslog, "PCoA", "bray")
 p1 <- plot_ordination(pslog, ordx, type = "taxa", color = "Phylum") +
     theme_bw(base_size = 6) +
     theme(
-        legend.position = "top",
+        legend.position = "right",
         legend.key.size = unit(0.3, "cm")
     ) + guides(color = guide_legend(nrow = 2))
 p2 <- plot_ordination(pslog, ordx, type = "samples", color = "age") +
     scale_color_manual(values = agecol) +
     theme_bw(base_size = 6) +
     theme(
-        legend.position = "top",
+        legend.position = "right",
         legend.key.size = unit(0.3, "cm")
     )
 p3 <- plot_ordination(pslog, ordx, type = "samples", color = "run") +
     theme_bw(base_size = 6) +
     theme(
-        legend.position = "top",
+        legend.position = "right",
         legend.key.size = unit(0.3, "cm"),
     )
 pcoa <- ggarrange(p1, p2, p3,
-    ncol = 3, nrow = 1, align = "hv", labels = "auto",
+    ncol = 1, nrow = 3, align = "hv", labels = "auto",
     font.label = list(size = 8)
 )
 
-plotsave(pcoa, "./results/16S/EDA/pcoa", width = 16, height = 8)
+plotsave(pcoa, "./results/16S/EDA/pcoa", width = 16, height = 21)
 
 alphadiv <- estimate_richness(ps) %>%
     mutate(sampleID = sample_names(ps)) %>%
@@ -529,7 +529,7 @@ ps_sp <- tax_glom(ps, taxrank = "Species")
 spnames <- apply(tax_table(ps), 1, function(x) paste(x, collapse = ";"))
 spasvcnts <- sort(table(spnames), dec = T)
 
-datmat = as.matrix(otu_table(ps_sp))
+datmat <- as.matrix(otu_table(ps_sp))
 
 e_l_means <- t(apply(datmat, 2, function(x) {
     tapply(x, as.factor(substr(rownames(datmat), 1, 1)), mean)

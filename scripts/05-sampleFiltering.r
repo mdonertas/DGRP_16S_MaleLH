@@ -15,10 +15,12 @@ libsize_across_samples <- data.frame(sums = sample_sums(ps)) %>%
         linewidth = 0.5
     ) +
     scale_x_continuous(labels = scales::comma, trans = "log10") +
-    theme_pubr(base_size = 12)
+    theme_pubr(base_size = 12) +
+    theme(plot.margin = grid::unit(c(2, 10, 2, 2), "mm"))
+
 
 plotsave(libsize_across_samples, "./results/EDA/libsize_across_samples",
-    width = 8, height = 8
+    width = 16, height = 12, 
 )
 
 table(sample_sums(ps) <= 10000)
