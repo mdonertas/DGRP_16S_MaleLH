@@ -4,10 +4,10 @@ This readme file was generated on [2023-06-08].
 
 ## GENERAL INFORMATION
 
-Title of Project: Male Life History Traits and Gut Microbiota across DGRP lines
+Title of Project: Age-dependent gut microbiota dynamics and their association with male fitness traits in Drosophila melanogaster
 
 Project Abstract:
-Growing evidence suggests that the gut microbiota plays a key role in shaping life history in a wide range of species, including well-studied model organisms like Drosophila melanogaster. Although recent studies have explored the relationship between gut microbiota and female life history, the link between gut microbiota and male life history remains relatively overlooked. In this study, we explored the role of gut microbiota in shaping male life history traits by correlating variation in life history traits across genetically homogeneous isolines with their naturally occurring gut microbiota. Using 22 isolines from the Drosophila melanogaster Genetic Reference Panel, we measured lifespan, early/late-life reproduction, and early/late-life physiological performance, while characterizing gut microbiota composition in young (4 days old) and old (25 days old) flies using 16S rDNA sequencing. We observed significant variation in male life history traits across isolines, as well as age-related changes in gut microbiota composition. Using machine learning, we showed that gut microbiota composition could predict the age of the organisms with high accuracy. Associations between gut microbiota and life history traits were notable, particularly involving the Acetobacter genus. The early-life abundance of Acetobacter ascendens was associated with functional agingageing, while Acetobacter indonesiensis was linked to reproductive senescence. In late life, higher abundances of Acetobacter ascendens and Acetobacter pasteurianus were negatively associated with lifespan. These findings highlight the potential role of gut microbiota, especially the Acetobacter genus, in male fitness and agingageing.
+Growing evidence suggests that the gut microbiota plays a key role in shaping life history in a wide range of species, including well-studied model organisms like Drosophila melanogaster. Although recent studies have explored the relationship between gut microbiota and female life history, the link between gut microbiota and male life history remains understudied. In this study, we explored the role of gut microbiota in shaping male life history traits by correlating variation in life history traits across genetically homogeneous isolines with their naturally occurring gut microbiota. Using 22 isolines from the Drosophila melanogaster Genetic Reference Panel (DGRP), we measured lifespan, early/late-life reproduction, and early/late-life physiological performance. We characterized the gut microbiota composition in young (5 days old) and old (26 days old) flies using 16S rDNA sequencing. We observed significant variation in male life history traits across isolines, as well as age-related changes in gut microbiota composition. Using machine learning, we showed that gut microbiota composition could predict the age of the organisms with high accuracy. Associations between gut microbiota and life history traits were notable, particularly involving the Acetobacter genus. In early life, the abundance of Acetobacter ascendens was associated with functional aging, while Acetobacter indonesiensis was linked to reproductive senescence. In late life, higher abundances of A. ascendens and Acetobacter pasteurianus were negatively associated with lifespan. These findings highlight the potential role of gut microbiota, especially the Acetobacter genus, in male fitness and aging. 
 
 [Github link](https://github.com/mdonertas/DGRP_16S_MaleLH)
 
@@ -18,14 +18,14 @@ Growing evidence suggests that the gut microbiota plays a key role in shaping li
 Location of the raw data used for this study:
 
 - Local: ./raw/
-- Publicly available data repository: SRA
+- Publicly available data repository: ENA PRJEB88786 
 
 ### PROCESSED DATA
 
 Location of the processed data:
 
 - Local: ./processed/
-- Publicly available data repository: BioStudies * TODO
+- Publicly available data repository: BioStudies S-BSST2029
 
 ## OTHER DOCUMENTATION
 
@@ -56,4 +56,4 @@ All analysis was done within R programming environment. The only additional tool
 
 ## FUNDING
 
-This study was supported by the Spanish Ministry of Economy and Competitivity grants: CGL2014-58722-P (PC and JILL), RYC-2013-12998 (PC), and RYC-2012-11872 (JILL). HMD is funded by Carl-Zeiss-Stiftung (P2021-00-007).
+This study was supported by the Spanish Ministry of Economy and Competitivity grants: PGC2018-099344-B-I00 (AL), CGL2014-58722-P (PC and JILL), RYC-2013-12998 (PC), and RYC-2012-11872 (JILL). HMD is funded by Carl-Zeiss-Stiftung (P2021-00-007). PA was supported by FCT through a PhD grant (number 2021.05611). ZS was supported by the Atracció de Talent Fellowship and the Leverhulme Trust Early Career Fellowship (ECF-2022-214).
